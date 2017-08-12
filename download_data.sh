@@ -2,18 +2,18 @@
 
 DATA_FOLDER="data"
 VISUAL_GENOME="../visual_genome"
-DATA_URL="https://s3-sa-east-1.amazonaws.com/textobjdetection/data.tar.bz2"
-DATA_FILE="data.tar.bz2"
+# DATA_URL="https://s3-sa-east-1.amazonaws.com/textobjdetection/data.tar.bz2"
+# DATA_FILE="data.tar.bz2"
 
-if [ ! -d $DATA_FOLDER ]; then
-    printf "\nDownloading dataset splits...\n"
-    mkdir $DATA_FOLDER
-    cd $DATA_FOLDER
-    aria2c -x 8 $DATA_URL
-    tar -xvjf $DATA_FILE
-    rm $DATA_FILE
-    cd ..
-fi
+# if [ ! -d $DATA_FOLDER ]; then
+#     printf "\nDownloading dataset splits...\n"
+#     mkdir $DATA_FOLDER
+#     cd $DATA_FOLDER
+#     aria2c -x 8 $DATA_URL
+#     tar -xvjf $DATA_FILE
+#     rm $DATA_FILE
+#     cd ..
+# fi
 
 if [ ! -d $VISUAL_GENOME ]; then
     printf "\nDownloading Visual Genome dataset (This may take a while...)"
