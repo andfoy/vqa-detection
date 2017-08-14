@@ -4,6 +4,7 @@ import cv2
 import json
 import torch
 import numpy as np
+import progressbar2
 import os.path as osp
 import torch.utils.data as data
 import visual_genome.local as vg
@@ -39,9 +40,9 @@ class VGLoader(data.Dataset):
     def check_exists(self):
         return osp.exists(osp.join(self.DATA_FOLDER, self.TRAIN_FILE))
 
-    def process_dataset(self):
+    def filter_regions(self):
         print('Loading region graph objects...')
-        region_graph_file = osp.join(self.root, 'region_graphs.json')
+        region_graph_file = osp.join(self.data_root, 'region_graphs.json')
         with open(region_graph_file, 'r') as f:
             reg_graph = json.load(f)
 
@@ -58,7 +59,8 @@ class VGLoader(data.Dataset):
                   self.NUM_CLASSES, self.NUM_OBJS))
 
         obj_count = {}
-        for img in img_id:
+        bar = progressbar2.ProgressBar()
+        for img in bar(img_id):
             for region in img_id[img]:
                 for obj in img_id[img][region]:
                     if len(obj) == self.NUM_OBJS:
@@ -71,8 +73,11 @@ class VGLoader(data.Dataset):
 
         obj_idx = dict(zip(objs, range(len(objs))))
 
+        print('Filtering regions...')
+
         img_regions = {}
-        for img in img_id:
+        bar = progressbar2.ProgressBar()
+        for img in bar(img_id):
             regions = {}
             for region in img_id[img]:
                 if img_id[img][region] in obj_idx:
@@ -81,3 +86,6 @@ class VGLoader(data.Dataset):
                 img_regions[img] = regions
 
         return obj_idx, img_regions
+
+    def process_dataset(self):
+        pass
