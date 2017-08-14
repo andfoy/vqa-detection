@@ -62,11 +62,11 @@ class VGLoader(data.Dataset):
         bar = progressbar.ProgressBar()
         for img in bar(img_id):
             for region in img_id[img]:
-                for obj in img_id[img][region]:
-                    if len(obj) == self.NUM_OBJS:
-                        if obj not in obj_count:
-                            obj_count[obj] = 0
-                        obj_count[obj] += 1
+                obj = img_id[img][region]
+                if len(obj) == self.NUM_OBJS:
+                    if obj not in obj_count:
+                        obj_count[obj] = 0
+                    obj_count[obj] += 1
 
         objs = sorted(obj_count, key=lambda k: obj_count[k],
                       reverse=True)[:self.NUM_CLASSES]
