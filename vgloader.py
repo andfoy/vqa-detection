@@ -3,8 +3,8 @@ import os
 import cv2
 import json
 import torch
+import progressbar
 import numpy as np
-import progressbar2
 import os.path as osp
 import torch.utils.data as data
 import visual_genome.local as vg
@@ -59,7 +59,7 @@ class VGLoader(data.Dataset):
                   self.NUM_CLASSES, self.NUM_OBJS))
 
         obj_count = {}
-        bar = progressbar2.ProgressBar()
+        bar = progressbar.ProgressBar()
         for img in bar(img_id):
             for region in img_id[img]:
                 for obj in img_id[img][region]:
@@ -76,7 +76,7 @@ class VGLoader(data.Dataset):
         print('Filtering regions...')
 
         img_regions = {}
-        bar = progressbar2.ProgressBar()
+        bar = progressbar.ProgressBar()
         for img in bar(img_id):
             regions = {}
             for region in img_id[img]:
