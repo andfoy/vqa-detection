@@ -143,9 +143,9 @@ class VGLoader(data.Dataset):
         val_id = image_id[idx_perm[num_images_split:num_images_split * 2]]
         test_id = image_id[idx_perm[num_images_split * 2:]]
 
-        train_images = [img_regions[img] for img in train_id]
-        val_images = [img_regions[img] for img in val_id]
-        test_images = [img_regions[img] for img in test_id]
+        train_images = [list(img_regions[img].values()) for img in train_id]
+        val_images = [list(img_regions[img].values()) for img in val_id]
+        test_images = [list(img_regions[img].values()) for img in test_id]
 
         train_file_path = osp.join(self.DATA_FOLDER, self.TRAIN_FILE)
         val_file_path = osp.join(self.DATA_FOLDER, self.VAL_FILE)
