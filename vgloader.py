@@ -132,11 +132,9 @@ class VGLoader(data.Dataset):
         print('Splitting dataset...')
         num_images_split = int(np.ceil(num_images * self.SPLIT_PROPORTION))
 
-        image_id = np.array(img_regions.keys())
-        print(image_id)
+        image_id = np.array(list(img_regions.keys()))
         idx_perm = np.random.permutation(num_images)
 
-        print(idx_perm[:num_images_split])
         train_id = image_id[idx_perm[:num_images_split]]
         val_id = image_id[idx_perm[num_images_split:num_images_split * 2]]
         test_id = image_id[idx_perm[num_images_split * 2:]]
