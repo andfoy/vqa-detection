@@ -165,7 +165,8 @@ class VGLoader(data.Dataset):
     def __getitem__(self, idx):
         """Get image at index"""
         img_regions = self.images[idx]
-        img_info = img_regions[0].image
+        img_info, _ = img_regions[0]
+        img_info = img_info.image
 
         uri = img_info.url
         folder, filename = uri.split('/')[-2:]
