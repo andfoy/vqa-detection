@@ -8,6 +8,7 @@ to load Visual Genome Images, Region descriptions, bounding boxes and
 VQA.
 """
 
+import os
 import cv2
 import json
 import torch
@@ -116,6 +117,9 @@ class VGLoader(data.Dataset):
 
     def process_dataset(self):
         """Load, transform and split dataset."""
+        if not osp.exists(self.DATA_FOLDER):
+            os.makedirs(self.DATA_FOLDER)
+
         obj_idx, img_regions = self.filter_regions()
         num_images = len(img_regions)
 
