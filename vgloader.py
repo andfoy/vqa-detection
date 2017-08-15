@@ -23,6 +23,7 @@ class VGLoader(data.Dataset):
     TRAIN_FILE = 'vg_train.pth'
     TEST_FILE = 'vg_test.pth'
     VAL_FILE = 'vg_val.pth'
+    OBJ_IDX_FILE = 'vg_classes.pth'
     DATA_FOLDER = 'data'
     NUM_CLASSES = 50
     NUM_OBJS = 2
@@ -50,6 +51,7 @@ class VGLoader(data.Dataset):
         train_file_path = osp.join(self.DATA_FOLDER, self.TRAIN_FILE)
         val_file_path = osp.join(self.DATA_FOLDER, self.VAL_FILE)
         test_file_path = osp.join(self.DATA_FOLDER, self.TEST_FILE)
+        obj_idx_file_path = osp.join(self.DATA_FOLDER, self.OBJ_IDX_FILE)
 
         if self.train:
             self.images = torch.load(train_file_path)
@@ -57,6 +59,8 @@ class VGLoader(data.Dataset):
             self.images = torch.load(test_file_path)
         else:
             self.images = torch.load(val_file_path)
+
+        self.obj_idx = torch.load(obj_idx_file_path)
 
     def check_exists(self):
         """Check if dataset has been processed before."""
@@ -137,10 +141,12 @@ class VGLoader(data.Dataset):
         train_file_path = osp.join(self.DATA_FOLDER, self.TRAIN_FILE)
         val_file_path = osp.join(self.DATA_FOLDER, self.VAL_FILE)
         test_file_path = osp.join(self.DATA_FOLDER, self.TEST_FILE)
+        obj_idx_file_path = osp.join(self.DATA_FOLDER, self.OBJ_IDX_FILE)
 
         torch.save(train_images, train_file_path)
         torch.save(val_images, val_file_path)
         torch.save(test_images, test_file_path)
+        torch.save(obj_idx, obj_idx_file_path)
 
     def __len__(self):
         """Number of dataset images."""
