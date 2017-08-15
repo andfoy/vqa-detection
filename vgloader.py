@@ -119,12 +119,16 @@ class VGLoader(data.Dataset):
         obj_idx, img_regions = self.filter_regions()
         num_images = len(img_regions)
 
+        print('Loading region bounding boxes...')
         region_descriptions = vg.get_all_region_descriptions(self.data_root)
-        for region_group in region_descriptions:
+        bar = progressbar.ProgressBar()
+        for region_group in bar(region_descriptions):
             for region in region_group:
-                cat = img_regions[region.image.id][region.id]
-                img_regions[region.image.id][region.id] = (region, cat)
+                if region.id in img_regions[region.image.id]:
+                    cat = img_regions[region.image.id][region.id]
+                    img_regions[region.image.id][region.id] = (region, cat)
 
+        print('Splitting dataset...')
         num_images_split = int(np.ceil(num_images * self.SPLIT_PROPORTION))
 
         image_id = np.array(img_regions.keys())
@@ -143,6 +147,7 @@ class VGLoader(data.Dataset):
         test_file_path = osp.join(self.DATA_FOLDER, self.TEST_FILE)
         obj_idx_file_path = osp.join(self.DATA_FOLDER, self.OBJ_IDX_FILE)
 
+        print('Saving data...')
         torch.save(train_images, train_file_path)
         torch.save(val_images, val_file_path)
         torch.save(test_images, test_file_path)
