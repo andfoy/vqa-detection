@@ -124,9 +124,10 @@ class VGLoader(data.Dataset):
         bar = progressbar.ProgressBar()
         for region_group in bar(region_descriptions):
             for region in region_group:
-                if region.id in img_regions[region.image.id]:
-                    cat = img_regions[region.image.id][region.id]
-                    img_regions[region.image.id][region.id] = (region, cat)
+                if region.image.id in img_regions:
+                    if region.id in img_regions[region.image.id]:
+                        cat = img_regions[region.image.id][region.id]
+                        img_regions[region.image.id][region.id] = (region, cat)
 
         print('Splitting dataset...')
         num_images_split = int(np.ceil(num_images * self.SPLIT_PROPORTION))
