@@ -106,3 +106,6 @@ data/
 # PyTorch weights
 .pt
 .pth
+
+# PyCharm
+.idea/
