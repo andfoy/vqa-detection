@@ -289,7 +289,7 @@ if __name__ == '__main__':
             val_loss, val_time = validate(epoch)
             print('-' * 89)
             print('| end of epoch {:3d} | time: {:5.2f}s '
-                  '| valid loss {:.6f} | val time: {:5.2f}s|'.format(
+                  '| valid loss {:.6f} | val time: {:5.2f}s'.format(
                       epoch, time.time() - epoch_start_time, val_loss,
                       val_time))
             print('-' * 89)
