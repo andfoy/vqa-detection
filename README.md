@@ -6,14 +6,15 @@ Object detection-based Visual Question Answering
 
 ## Dependencies
 
-To execute this, you must have Python 3.6.*, [PyTorch](http://pytorch.org/), [OpenCV](http://opencv.org/), [Numpy](http://www.numpy.org/) and [Matplotlib](https://matplotlib.org/) installed, to accomplish this, we recommend installing the [Anaconda](https://www.continuum.io/downloads) Python distribution and use conda to install the dependencies, as it follows:
+To execute this, you must have Python 3.6.*, [PyTorch](http://pytorch.org/), [Visdom](https://github.com/facebookresearch/visdom) [OpenCV](http://opencv.org/), [Numpy](http://www.numpy.org/) and [Matplotlib](https://matplotlib.org/) installed, to accomplish this, we recommend installing the [Anaconda](https://www.continuum.io/downloads) Python distribution and use conda to install the dependencies, as it follows:
 
 ```bash
 conda install pytorch torchvision cuda80 -c soumith
 conda install opencv -c conda-forge
 conda install matplotlib numpy
 conda install aria2 -c bioconda
-pip install visual-genome
+pip install -U visual-genome
+pip install -U visdom
 ```
 
 ## Dataset download
