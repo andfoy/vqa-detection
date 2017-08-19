@@ -1,6 +1,6 @@
 
-from layers.functions import PriorBox, Detect
-from layers.modules import L2Norm, MultiBoxLoss
+from .layers.functions import PriorBox, Detect
+from .layers.modules import L2Norm, MultiBoxLoss
 
 PriorBox
 Detect
