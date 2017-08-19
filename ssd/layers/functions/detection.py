@@ -2,7 +2,7 @@
 import torch
 from ssd import V2 as cfg
 from torch.autograd import Function
-from layers.box_utils import decode, nms
+from ssd.layers.box_utils import decode, nms
 
 
 class Detect(Function):
