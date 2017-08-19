@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from ssd import v2 as cfg
+from ssd import V2 as cfg
 from ssd.layers.box_utils import match, log_sum_exp
 
 class MultiBoxLoss(nn.Module):
