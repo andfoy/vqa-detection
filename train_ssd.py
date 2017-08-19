@@ -114,7 +114,7 @@ if not osp.exists(snapshot_file):
     if not osp.exists(PASCAL_WEIGHTS):
         print('Downloading pretrained SSD weights...')
         urlretrieve(PASCAL_WEIGHTS_URL, PASCAL_WEIGHTS, reporthook)
-    snapshot_file = PASCAL_WEIGHTS_URL
+    snapshot_file = PASCAL_WEIGHTS
 
 net.load_weights(snapshot_file)
 
