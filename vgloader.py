@@ -210,7 +210,8 @@ class VGLoader(data.Dataset):
         height, width, channels = img.shape
 
         if self.target_transform is not None:
-            img_regions = self.target_transform(img_regions, width, height)
+            img_regions = self.target_transform(
+                img_regions, width, height, self.obj_idx)
 
         if self.transform is not None:
             img_regions = np.array(img_regions)
