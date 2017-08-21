@@ -119,6 +119,7 @@ if not osp.exists(snapshot_file):
 net.load_weights(snapshot_file)
 
 if args.cuda:
+    torch.set_default_tensor_type('torch.cuda.FloatTensor')
     net.cuda()
 
 if args.parallel:
