@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 # Local module imports
 from ssd.ssd import build_ssd
 from ssd.layers import MultiBoxLoss
-from ssd.utils.augmentations import SSDAugmentation
+from ssd.utils.augmentations import SSDAugmentation, BaseTransform
 from vgloader import VGLoader, detection_collate, AnnotationTransform
 
 # Other imports
@@ -100,7 +100,7 @@ train_loader = VGLoader(data_root=args.data, transform=SSDAugmentation(),
 
 print('Loading validation set...')
 
-val_loader = VGLoader(data_root=args.data,
+val_loader = VGLoader(data_root=args.data, transform=BaseTransform(),
                       target_transform=AnnotationTransform(),
                       train=False, test=False)
 

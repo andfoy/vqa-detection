@@ -419,3 +419,15 @@ class SSDAugmentation(object):
 
     def __call__(self, img, boxes, labels):
         return self.augment(img, boxes, labels)
+
+
+class BaseTransform:
+    def __init__(self, size=300, mean=(104, 117, 123)):
+        self.size = size
+        self.mean = mean
+
+    def __call__(self, image, boxes=None, labels=None):
+        x = cv2.resize(image, (self.size, self.size)).astype(np.float32)
+        x -= self.mean
+        x = x.astype(np.float32)
+        return x, boxes, labels
