@@ -192,8 +192,9 @@ def train(epoch, global_lr):
         epoch_conf_loss += conf_loss
 
         if args.visdom is not None:
+            cur_iter = batch_idx + (epoch - 1) * len(trainset)
             vis.plot_line('iteration_plt',
-                          X=torch.ones((1, 3)).cpu() * (batch_idx + epoch),
+                          X=torch.ones((1, 3)).cpu() * cur_iter,
                           Y=torch.Tensor([loss_l.data[0], loss_c.data[0],
                                           loss_l.data[0] + loss_c.data[0]
                                           ]).unsqueeze(0).cpu(),
