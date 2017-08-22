@@ -45,6 +45,8 @@ parser.add_argument('--num-workers', default=2, type=int,
                     help='Number of workers used in dataloading')
 parser.add_argument('--no-cuda', action='store_true',
                     help='Do not use cuda to train model')
+parser.add_argument('--no-val', action='store_true',
+                    help='Do not test model over the validation set')
 parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float,
                     help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
@@ -98,11 +100,12 @@ train_loader = VGLoader(data_root=args.data, transform=SSDAugmentation(),
                         target_transform=AnnotationTransform(),
                         train=True)
 
-print('Loading validation set...')
+if not args.no_val:
+    print('Loading validation set...')
 
-val_loader = VGLoader(data_root=args.data, transform=BaseTransform(),
-                      target_transform=AnnotationTransform(),
-                      train=False, test=False)
+    val_loader = VGLoader(data_root=args.data, transform=BaseTransform(),
+                          target_transform=AnnotationTransform(),
+                          train=False, test=False)
 
 if not osp.exists(args.save_folder):
     os.makedirs(args.save_folder)
@@ -142,16 +145,18 @@ if args.visdom is not None:
     vis.init_line_plot('epoch_plt', xlabel='Epoch', ylabel='Loss',
                        title='Epoch SSD Training Loss',
                        legend=['Loc Loss', 'Conf Loss', 'Loss'])
-
-    vis.init_line_plot('val_plt', xlabel='Epoch', ylabel='Loss',
-                       title='Validation SSD Training Loss',
-                       legend=['Loc Loss', 'Conf Loss', 'Loss'])
+    if not args.no_val:
+        vis.init_line_plot('val_plt', xlabel='Epoch', ylabel='Loss',
+                           title='Validation SSD Training Loss',
+                           legend=['Loc Loss', 'Conf Loss', 'Loss'])
 
 trainset = DataLoader(train_loader, shuffle=True, collate_fn=detection_collate,
                       batch_size=args.batch_size)
 
-valset = DataLoader(val_loader, shuffle=False, collate_fn=detection_collate,
-                    batch_size=args.batch_size)
+if not args.no_val:
+    valset = DataLoader(val_loader, shuffle=False,
+                        collate_fn=detection_collate,
+                        batch_size=args.batch_size)
 
 optimizer = optim.SGD(net.parameters(), lr=args.lr,
                       momentum=args.momentum, weight_decay=args.weight_decay)
@@ -234,6 +239,7 @@ def train(epoch, global_lr):
                                       epoch_total_loss
                                       ]).unsqueeze(0).cpu(),
                       update='append')
+    return epoch_total_loss
 
 
 def validate(epoch):
@@ -289,8 +295,10 @@ if __name__ == '__main__':
     try:
         for epoch in range(1, args.epochs + 1):
             epoch_start_time = time.time()
-            train(epoch, global_lr)
-            val_loss, val_time = validate(epoch)
+            val_loss = train(epoch, global_lr)
+            val_time = 0
+            if not args.no_val:
+                val_loss, val_time = validate(epoch)
             print('-' * 89)
             print('| end of epoch {:3d} | time: {:5.2f}s '
                   '| valid loss {:.6f} | val time: {:5.2f}s'.format(
