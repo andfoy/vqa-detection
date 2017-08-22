@@ -198,7 +198,11 @@ def train(epoch, global_lr):
             backup_file = osp.join(
                 args.save_folder, '{0}-{1}-{2}'.format(
                     epoch, batch_idx, args.save))
-            torch.save(net.state_dict(), backup_file)
+            if args.parallel:
+                state_dict = net.module.state_dict()
+            else:
+                state_dict = net.state_dict()
+            torch.save(state_dict, backup_file)
 
         if batch_idx % args.log_interval == 0:
             elapsed_time = time.time() - start_time

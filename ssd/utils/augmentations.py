@@ -76,7 +76,7 @@ class SubtractMeans(object):
     def __call__(self, image, boxes=None, labels=None):
         image = image.astype(np.float32)
         image -= self.mean
-        return image.astype(np.float32), boxes, labels
+        return image.astype(np.float32) / 255.0, boxes, labels
 
 
 class ToAbsoluteCoords(object):
