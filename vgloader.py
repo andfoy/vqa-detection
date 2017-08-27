@@ -45,9 +45,9 @@ class AnnotationTransform:
         boxes = []
         for region in regions:
             info, cat = region
-            bounding_box = [info.x / info.width, info.y / info.height,
-                            (info.x + info.width) / info.width,
-                            (info.y + info.height) / info.height,
+            bounding_box = [info.x / width, info.y / height,
+                            (info.x + info.width) / width,
+                            (info.y + info.height) / height,
                             obj2idx[cat]]
             boxes.append(bounding_box)
         return boxes
