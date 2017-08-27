@@ -124,10 +124,12 @@ if not osp.exists(snapshot_file):
         print('Downloading pretrained SSD weights (ImageNet)...')
         urlretrieve(IMAGENET_WEIGHTS_URL, IMAGENET_WEIGHTS, reporthook)
         vgg = torch.load(IMAGENET_WEIGHTS)
+        new_vgg = vgg.copy()
         for layer in vgg:
             if layer.startswith('features'):
                 _, layer_name = layer.split('features.')
-                vgg['vgg.' + layer_name] = vgg.pop(layer)
+                new_vgg['vgg.' + layer_name] = vgg[layer]
+        torch.save(new_vgg, IMAGENET_WEIGHTS)
     snapshot_file = IMAGENET_WEIGHTS
 
 net.load_weights(snapshot_file)
