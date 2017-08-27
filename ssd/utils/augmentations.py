@@ -325,8 +325,8 @@ class RandomSampleCrop(object):
 class Expand(object):
     def __init__(self, mean):
         self.mean = mean
-        if max(self.mean) <= 1:
-            self.mean = (x * 255 for x in self.mean)
+        if max(mean) <= 1:
+            self.mean = [x * 255 for x in mean]
 
     def __call__(self, image, boxes, labels):
         if random.randint(2):
