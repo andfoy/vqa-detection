@@ -56,12 +56,12 @@ class Compose(object):
 class Lambda(object):
     """Applies a lambda as a transform."""
 
-    def __init__(self, lambd):
-        assert isinstance(lambd, types.LambdaType)
-        self.lambd = lambd
+    def __init__(self, _lambda):
+        assert isinstance(_lambda, types.LambdaType)
+        self._lambda = _lambda
 
     def __call__(self, img, boxes=None, labels=None):
-        return self.lambd(img, boxes, labels)
+        return self._lambda(img, boxes, labels)
 
 
 class ConvertFromInts(object):
@@ -69,13 +69,22 @@ class ConvertFromInts(object):
         return image.astype(np.float32), boxes, labels
 
 
-class SubtractMeans(object):
-    def __init__(self, mean):
+class Normalize(object):
+    def __init__(self, mean, std):
         self.mean = np.array(mean, dtype=np.float32)
+        self.std = np.array(std, dtype=np.float32)
+
+        if np.max(self.mean) > 1:
+            self.mean /= 255.0
+        if np.max(self.std) > 1:
+            self.std /= 255.0
 
     def __call__(self, image, boxes=None, labels=None):
         image = image.astype(np.float32)
+        if np.max(image) > 1:
+            image /= 255.0
         image -= self.mean
+        image /= self.std
         return image.astype(np.float32), boxes, labels
 
 
@@ -316,6 +325,8 @@ class RandomSampleCrop(object):
 class Expand(object):
     def __init__(self, mean):
         self.mean = mean
+        if max(self.mean) <= 1:
+            self.mean = (x * 255 for x in self.mean)
 
     def __call__(self, image, boxes, labels):
         if random.randint(2):
@@ -402,8 +413,9 @@ class PhotometricDistort(object):
 
 
 class SSDAugmentation(object):
-    def __init__(self, size=300, mean=(104, 117, 123)):
+    def __init__(self, size=300, mean=(104, 117, 123), std=(1, 1, 1)):
         self.mean = mean
+        self.std = std
         self.size = size
         self.augment = Compose([
             ConvertFromInts(),
@@ -414,20 +426,8 @@ class SSDAugmentation(object):
             RandomMirror(),
             ToPercentCoords(),
             Resize(self.size),
-            SubtractMeans(self.mean)
+            Normalize(self.mean, self.std)
         ])
 
     def __call__(self, img, boxes, labels):
         return self.augment(img, boxes, labels)
-
-
-class BaseTransform:
-    def __init__(self, size=300, mean=(104, 117, 123)):
-        self.size = size
-        self.mean = mean
-
-    def __call__(self, image, boxes=None, labels=None):
-        x = cv2.resize(image, (self.size, self.size)).astype(np.float32)
-        x -= self.mean
-        x = x.astype(np.float32)
-        return x, boxes, labels
