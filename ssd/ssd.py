@@ -120,8 +120,9 @@ class SSD(nn.Module):
             new_state = torch.load(
                 base_file, map_location=lambda storage, loc: storage)
             for layer in state_dict:
-                if state_dict[layer].size() == new_state[layer].size():
-                    state_dict[layer] = new_state[layer]
+                if layer in new_state:
+                    if state_dict[layer].size() == new_state[layer].size():
+                        state_dict[layer] = new_state[layer]
             self.load_state_dict(state_dict)
             print('Finished!')
         else:
