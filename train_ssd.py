@@ -22,15 +22,15 @@ from torch.utils.data import DataLoader
 # Local module imports
 from ssd.ssd import build_ssd
 from ssd.layers import MultiBoxLoss
-from ssd.utils.augmentations import SSDAugmentation, BaseTransform
+from ssd.utils.augmentations import SSDAugmentation, Normalize
 from vgloader import VGLoader, detection_collate, AnnotationTransform
 
 # Other imports
 from utils import VisdomWrapper, reporthook
 
 
-PASCAL_WEIGHTS_URL = ('https://s3.amazonaws.com/amdegroot-models'
-                      '/ssd300_mAP_77.43_v2.pth')
+IMAGENET_WEIGHTS_URL = ('https://download.pytorch.org/models'
+                        '/vgg16-397923af.pth')
 
 parser = argparse.ArgumentParser(description='Single Shot MultiBox '
                                              'Detector for object '
@@ -75,8 +75,8 @@ parser.add_argument('--visdom', type=str, default=None,
 
 args = parser.parse_args()
 
-PASCAL_WEIGHTS = osp.join(
-    args.save_folder, osp.basename(urlparse(PASCAL_WEIGHTS_URL).path))
+IMAGENET_WEIGHTS = osp.join(
+    args.save_folder, osp.basename(urlparse(IMAGENET_WEIGHTS_URL).path))
 
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 kwargs = {'num_workers': args.num_workers,
@@ -96,14 +96,20 @@ batch_size = args.batch_size
 
 print('Loading train set...')
 
-train_loader = VGLoader(data_root=args.data, transform=SSDAugmentation(),
+train_loader = VGLoader(data_root=args.data,
+                        transform=SSDAugmentation(
+                            mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225]),
                         target_transform=AnnotationTransform(),
                         train=True)
 
 if not args.no_val:
     print('Loading validation set...')
 
-    val_loader = VGLoader(data_root=args.data, transform=BaseTransform(),
+    val_loader = VGLoader(data_root=args.data,
+                          transform=Normalize(
+                              mean=[0.485, 0.456, 0.406],
+                              std=[0.229, 0.224, 0.225]),
                           target_transform=AnnotationTransform(),
                           train=False, test=False)
 
@@ -114,10 +120,17 @@ net = build_ssd('train', ssd_dim, num_classes)
 snapshot_file = osp.join(args.save_folder, args.save)
 
 if not osp.exists(snapshot_file):
-    if not osp.exists(PASCAL_WEIGHTS):
-        print('Downloading pretrained SSD weights...')
-        urlretrieve(PASCAL_WEIGHTS_URL, PASCAL_WEIGHTS, reporthook)
-    snapshot_file = PASCAL_WEIGHTS
+    if not osp.exists(IMAGENET_WEIGHTS):
+        print('Downloading pretrained SSD weights (ImageNet)...')
+        urlretrieve(IMAGENET_WEIGHTS_URL, IMAGENET_WEIGHTS, reporthook)
+        vgg = torch.load(IMAGENET_WEIGHTS)
+        new_vgg = vgg.copy()
+        for layer in vgg:
+            if layer.startswith('features'):
+                _, layer_name = layer.split('features.')
+                new_vgg['vgg.' + layer_name] = vgg[layer]
+        torch.save(new_vgg, IMAGENET_WEIGHTS)
+    snapshot_file = IMAGENET_WEIGHTS
 
 net.load_weights(snapshot_file)
 
