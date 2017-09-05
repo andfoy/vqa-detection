@@ -40,6 +40,9 @@ parser.add_argument('--no-cuda', action='store_true',
                     help='Do not use cuda to train model')
 parser.add_argument('--data', type=str, default='../visual_genome',
                     help='path to Visual Genome dataset')
+parser.add_argument('--num-classes', type=int, default=50,
+                    help='number of classification categories')
+
 args = parser.parse_args()
 
 if not os.path.exists(args.save):
@@ -378,13 +381,20 @@ def evaluate_detections(box_list, output_dir, dataset):
 
 if __name__ == '__main__':
     # load net
-    num_classes = len(VOC_CLASSES) + 1 # +1 background
-    net = build_ssd('test', 300, num_classes) # initialize SSD
-    net.load_state_dict(torch.load(args.trained_model))
+    num_classes = args.num_classes + 1  # +1 background
+    net = build_ssd('test', 300, num_classes)  # initialize SSD
+    net.load_state_dict(torch.load(args.model))
     net.eval()
     print('Finished loading model!')
     # load data
-    dataset = VOCDetection(args.voc_root, [('2007', set_type)], BaseTransform(300, dataset_mean), AnnotationTransform())
+    dataset = VGLoader(data_root=args.data,
+                       transform=Compose([Resize(size=300),
+                                          Normalize(
+                                              mean=[0.485, 0.456, 0.406],
+                                              std=[0.229, 0.224, 0.225])
+                                          ]),
+                       target_transform=AnnotationTransform(),
+                       train=False)
     if args.cuda:
         net = net.cuda()
         cudnn.benchmark = True
