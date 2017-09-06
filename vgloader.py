@@ -34,10 +34,13 @@ def detection_collate(batch):
     """
     targets = []
     imgs = []
+    ids = []
     for sample in batch:
-        imgs.append(sample[0])
-        targets.append(torch.FloatTensor(sample[1]))
-    return torch.stack(imgs, 0), targets
+        img, target, h, w, img_id = sample
+        ids.append((h, w, img_id))
+        imgs.append(img)
+        targets.append(torch.FloatTensor(target))
+    return torch.stack(imgs, 0), targets, ids
 
 
 class AnnotationTransform:
@@ -222,4 +225,4 @@ class VGLoader(data.Dataset):
             img_regions = np.hstack((boxes, np.expand_dims(labels, axis=1)))
 
         return (torch.from_numpy(img).permute(2, 0, 1), img_regions,
-                height, width)
+                height, width, img_info.id)

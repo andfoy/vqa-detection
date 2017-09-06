@@ -22,8 +22,8 @@ from torch.utils.data import DataLoader
 # Local module imports
 from ssd.ssd import build_ssd
 from ssd.layers import MultiBoxLoss
-from ssd.utils.augmentations import SSDAugmentation, Normalize
 from vgloader import VGLoader, detection_collate, AnnotationTransform
+from ssd.utils.augmentations import SSDAugmentation, Normalize, Compose, Resize
 
 # Other imports
 from utils import VisdomWrapper, reporthook
@@ -110,7 +110,10 @@ if not args.no_val:
                           transform=Normalize(
                               mean=[0.485, 0.456, 0.406],
                               std=[0.229, 0.224, 0.225]),
-                          target_transform=AnnotationTransform(),
+                          target_transform=Compose(
+                              [Resize(size=300), Normalize(
+                               mean=[0.485, 0.456, 0.406],
+                               std=[0.229, 0.224, 0.225])]),
                           train=False, test=False)
 
 if not osp.exists(args.save_folder):
@@ -183,7 +186,7 @@ def train(epoch, global_lr):
     total_loss = epoch_total_loss = 0
     start_time = time.time()
 
-    for batch_idx, (imgs, targets) in enumerate(trainset):
+    for batch_idx, (imgs, targets, _) in enumerate(trainset):
         if args.cuda:
             imgs = Variable(imgs.cuda())
             targets = [Variable(x.cuda(), volatile=True) for x in targets]
@@ -264,7 +267,7 @@ def validate(epoch):
     total_loss = 0
     start = time.time()
 
-    for batch_idx, (imgs, targets) in enumerate(valset):
+    for batch_idx, (imgs, targets, _) in enumerate(valset):
         if args.cuda:
             imgs = Variable(imgs.cuda())
             targets = [Variable(x.cuda()) for x in targets]

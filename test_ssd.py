@@ -15,13 +15,14 @@ import argparse
 
 # PyTorch imports
 import torch
-import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
+import torch.backends.cudnn as cudnn
+from torch.utils.data import DataLoader
 
 # Local module imports
 from ssd.ssd import build_ssd
-from vgloader import VGLoader, detection_collate, AnnotationTransform
-from ssd.utils.augmentations import SSDAugmentation, Normalize, Compose, Resize
+from ssd.utils.augmentations import Normalize, Compose, Resize
+from vgloader import VGLoader, AnnotationTransform, detection_collate
 
 # Other module imports
 import pickle
@@ -322,20 +323,18 @@ cachedir: Directory for caching the annotations
     return rec, prec, ap
 
 
-def test_net(save_folder, net, cuda, dataset, transform, top_k,
-             im_size=300, thresh=0.05):
+def test_net(save_folder, dataset, top_k, thresh=0.05):
     """Test a Fast R-CNN network on an image database."""
     num_images = len(dataset)
     # all detections are collected into:
     #    all_boxes[cls][image] = N x 5 array of detections in
     #    (x1, y1, x2, y2, score)
-    all_boxes = [[[] for _ in range(num_images)]
-                 for _ in range(len(labelmap)+1)]
+    all_boxes = {x: {} for x in dataset.obj_idx}
 
     # timers
     _t = {'im_detect': Timer(), 'misc': Timer()}
-    output_dir = get_output_dir('ssd300_120000', set_type)
-    det_file = os.path.join(output_dir, 'detections.pkl')
+    output_dir = get_output_dir('ssd300_vg_50', 'test')
+    det_file = os.path.join(output_dir, 'detections.pth')
 
     for i in range(num_images):
         im, gt, h, w = dataset.pull_item(i)
@@ -395,6 +394,9 @@ if __name__ == '__main__':
                                           ]),
                        target_transform=AnnotationTransform(),
                        train=False)
+    dataloader = DataLoader(dataset, shuffle=True,
+                            collate_fn=detection_collate,
+                            batch_size=args.batch_size)
     if args.cuda:
         net = net.cuda()
         cudnn.benchmark = True
