@@ -349,46 +349,47 @@ def test_net(dataset):
     det_file = osp.join(output_dir, 'detections.pth')
     gt_file = osp.join(output_dir, 'ground_truth.pth')
 
-    for i in range(len(dataset)):
-        img, boxes, h, w, img_id = dataset[i]
-        x = Variable(img.unsqueeze(0))
-        if args.cuda:
-            x = x.cuda()
-        _t['im_detect'].tic()
-        detections = net(x).data
-        detect_time = _t['im_detect'].toc(average=False)
+    if not osp.exists(det_file):
+        for i in range(len(dataset)):
+            img, boxes, h, w, img_id = dataset[i]
+            x = Variable(img.unsqueeze(0))
+            if args.cuda:
+                x = x.cuda()
+            _t['im_detect'].tic()
+            detections = net(x).data
+            detect_time = _t['im_detect'].toc(average=False)
 
-        # boxes = [[x[y] * d for y, d in zip(range(0, 4), (w, h, w, h))]
-        #          for x in boxes]
-        for box in boxes:
-            box[0] *= w
-            box[2] *= w
-            box[1] *= h
-            box[3] *= h
-            if img_id not in cls_gt[box[4]]:
-                cls_gt[box[4]][img_id] = []
-            cls_gt[box[4]][img_id].append(box)
+            # boxes = [[x[y] * d for y, d in zip(range(0, 4), (w, h, w, h))]
+            #          for x in boxes]
+            for box in boxes:
+                box[0] *= w
+                box[2] *= w
+                box[1] *= h
+                box[3] *= h
+                if img_id not in cls_gt[box[4]]:
+                    cls_gt[box[4]][img_id] = []
+                cls_gt[box[4]][img_id].append(box)
 
-        # skip j = 0, because it's the background class
-        for j in range(1, detections.size(1)):
-            dets = detections[0, j, :]
-            mask = dets[:, 0].gt(0.).expand(5, dets.size(0)).t()
-            dets = torch.masked_select(dets, mask).view(-1, 5)
-            if dets.dim() == 0:
-                continue
-            boxes = dets[:, 1:]
-            boxes[:, 0] *= w
-            boxes[:, 2] *= w
-            boxes[:, 1] *= h
-            boxes[:, 3] *= h
-            scores = dets[:, 0].cpu().numpy()
-            cls_dets = np.hstack((
-                boxes.cpu().numpy(), scores[:, np.newaxis])).astype(
-                    np.float32, copy=False)
-            all_boxes[j - 1][img_id] = cls_dets
+            # skip j = 0, because it's the background class
+            for j in range(1, detections.size(1)):
+                dets = detections[0, j, :]
+                mask = dets[:, 0].gt(0.).expand(5, dets.size(0)).t()
+                dets = torch.masked_select(dets, mask).view(-1, 5)
+                if dets.dim() == 0:
+                    continue
+                boxes = dets[:, 1:]
+                boxes[:, 0] *= w
+                boxes[:, 2] *= w
+                boxes[:, 1] *= h
+                boxes[:, 3] *= h
+                scores = dets[:, 0].cpu().numpy()
+                cls_dets = np.hstack((
+                    boxes.cpu().numpy(), scores[:, np.newaxis])).astype(
+                        np.float32, copy=False)
+                all_boxes[j - 1][img_id] = cls_dets
 
-        print('im_detect: {:d}/{:d} {:.3f}s'.format(i + 1,
-                                                    num_images, detect_time))
+            print('im_detect: {:d}/{:d} {:.3f}s'.format(
+                i + 1, num_images, detect_time))
 
     torch.save(all_boxes, det_file)
     torch.save(cls_gt, gt_file)
