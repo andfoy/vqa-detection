@@ -137,10 +137,9 @@ def do_python_eval(labelmap, output_dir='output', use_07=True):
         os.mkdir(output_dir)
     for classname in labelmap:
         cls_ind = labelmap[classname]
-        filename = get_voc_results_file_template('test', cls_ind)
+        # filename = get_voc_results_file_template('test', cls_ind)
         rec, prec, ap = voc_eval(
-           filename, annopath, imgsetpath.format(set_type), cls_ind, cachedir,
-           ovthresh=0.5, use_07_metric=use_07_metric)
+            cls_ind, ovthresh=0.5, use_07_metric=use_07_metric)
         aps += [ap]
         print('AP for {} = {:.4f}'.format(classname, ap))
         with open(osp.join(output_dir, cls_ind + '_pr.pkl'), 'wb') as f:
@@ -193,11 +192,7 @@ def voc_ap(rec, prec, use_07_metric=True):
     return ap
 
 
-def voc_eval(detpath,
-             annopath,
-             imagesetfile,
-             classname,
-             cachedir,
+def voc_eval(classname,
              ovthresh=0.5,
              use_07_metric=True):
     """rec, prec, ap = voc_eval(detpath,
@@ -400,7 +395,7 @@ def test_net(dataset):
 
 def evaluate_detections(box_list, output_dir, dataset):
     write_voc_results_file(box_list, dataset)
-    do_python_eval(output_dir, dataset.obj_idx)
+    do_python_eval(dataset.obj_idx, output_dir=output_dir)
 
 
 if __name__ == '__main__':
