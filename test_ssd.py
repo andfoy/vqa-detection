@@ -142,7 +142,7 @@ def do_python_eval(labelmap, output_dir='output', use_07=True):
             cls_ind, ovthresh=0.5, use_07_metric=use_07_metric)
         aps += [ap]
         print('AP for {} = {:.4f}'.format(classname, ap))
-        with open(osp.join(output_dir, cls_ind + '_pr.pkl'), 'wb') as f:
+        with open(osp.join(output_dir, str(cls_ind) + '_pr.pkl'), 'wb') as f:
             pickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
     print('Mean AP = {:.4f}'.format(np.mean(aps)))
     print('~~~~~~~~')
