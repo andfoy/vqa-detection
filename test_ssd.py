@@ -340,7 +340,7 @@ def test_net(dataset):
     # all detections are collected into:
     #    all_boxes[cls][image] = N x 5 array of detections in
     #    (x1, y1, x2, y2, score)
-    all_boxes = {x: {} for x in dataset.obj_idx}
+    all_boxes = {x: {} for x in range(len(dataset.obj_idx))}
     cls_gt = {i: {} for i in range(len(dataset.obj_idx))}
 
     # timers
