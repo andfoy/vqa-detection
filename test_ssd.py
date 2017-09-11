@@ -12,17 +12,17 @@ Adapted from:
 import os
 import time
 import argparse
+import os.path as osp
 
 # PyTorch imports
 import torch
 from torch.autograd import Variable
 import torch.backends.cudnn as cudnn
-from torch.utils.data import DataLoader
 
 # Local module imports
 from ssd.ssd import build_ssd
+from vgloader import VGLoader, AnnotationTransform
 from ssd.utils.augmentations import Normalize, Compose, Resize
-from vgloader import VGLoader, AnnotationTransform, detection_collate
 
 # Other module imports
 import pickle
@@ -43,10 +43,12 @@ parser.add_argument('--data', type=str, default='../visual_genome',
                     help='path to Visual Genome dataset')
 parser.add_argument('--num-classes', type=int, default=50,
                     help='number of classification categories')
+parser.add_argument('--batch-size', default=16, type=int,
+                    help='Batch size for testing')
 
 args = parser.parse_args()
 
-if not os.path.exists(args.save):
+if not osp.exists(args.save):
     os.mkdir(args.save)
 
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -89,8 +91,8 @@ def get_output_dir(name, phase):
     A canonical path is built using the name from an imdb and a network
     (if not None).
     """
-    filedir = os.path.join(name, phase)
-    if not os.path.exists(filedir):
+    filedir = osp.join(name, phase)
+    if not osp.exists(filedir):
         os.makedirs(filedir)
     return filedir
 
@@ -98,46 +100,50 @@ def get_output_dir(name, phase):
 def get_voc_results_file_template(image_set, cls):
     # VOCdevkit/VOC2007/results/det_test_aeroplane.txt
     filename = 'det_' + image_set + '_%s.txt' % (cls)
-    filedir = os.path.join(devkit_path, 'results')
-    if not os.path.exists(filedir):
+    filedir = osp.join(args.save, 'results')
+    if not osp.exists(filedir):
         os.makedirs(filedir)
-    path = os.path.join(filedir, filename)
+    path = osp.join(filedir, filename)
     return path
 
 
 def write_voc_results_file(all_boxes, dataset):
-    for cls_ind, cls in enumerate(labelmap):
-        print('Writing {:s} VOC results file'.format(cls))
-        filename = get_voc_results_file_template(set_type, cls)
+    labelmap = dataset.obj_idx
+    for classname in labelmap:
+        cls_ind = labelmap[classname]
+        print('Writing {:s} results file'.format(classname))
+        filename = get_voc_results_file_template('test', cls_ind)
         with open(filename, 'wt') as f:
-            for im_ind, index in enumerate(dataset.ids):
-                dets = all_boxes[cls_ind+1][im_ind]
+            dets_cls = all_boxes[cls_ind]
+            for im_ind in dets_cls:
+                dets = dets_cls[im_ind]
                 if dets == []:
                     continue
                 # the VOCdevkit expects 1-based indices
                 for k in range(dets.shape[0]):
                     f.write('{:s} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
-                            format(index[1], dets[k, -1],
+                            format(im_ind, dets[k, -1],
                                    dets[k, 0] + 1, dets[k, 1] + 1,
                                    dets[k, 2] + 1, dets[k, 3] + 1))
 
 
-def do_python_eval(output_dir='output', use_07=True):
-    cachedir = os.path.join(devkit_path, 'annotations_cache')
+def do_python_eval(labelmap, output_dir='output', use_07=True):
+    cachedir = osp.join('cache', 'annotations_cache')
     aps = []
     # The PASCAL VOC metric changed in 2010
     use_07_metric = use_07
     print('VOC07 metric? ' + ('Yes' if use_07_metric else 'No'))
-    if not os.path.isdir(output_dir):
+    if not osp.isdir(output_dir):
         os.mkdir(output_dir)
-    for i, cls in enumerate(labelmap):
-        filename = get_voc_results_file_template(set_type, cls)
+    for classname in labelmap:
+        cls_ind = labelmap[classname]
+        filename = get_voc_results_file_template('test', cls_ind)
         rec, prec, ap = voc_eval(
-           filename, annopath, imgsetpath.format(set_type), cls, cachedir,
+           filename, annopath, imgsetpath.format(set_type), cls_ind, cachedir,
            ovthresh=0.5, use_07_metric=use_07_metric)
         aps += [ap]
-        print('AP for {} = {:.4f}'.format(cls, ap))
-        with open(os.path.join(output_dir, cls + '_pr.pkl'), 'wb') as f:
+        print('AP for {} = {:.4f}'.format(classname, ap))
+        with open(osp.join(output_dir, cls_ind + '_pr.pkl'), 'wb') as f:
             pickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
     print('Mean AP = {:.4f}'.format(np.mean(aps)))
     print('~~~~~~~~')
@@ -217,37 +223,42 @@ cachedir: Directory for caching the annotations
 # assumes imagesetfile is a text file with each line an image name
 # cachedir caches the annotations in a pickle file
 # first load gt
-    if not os.path.isdir(cachedir):
-        os.mkdir(cachedir)
-    cachefile = os.path.join(cachedir, 'annots.pkl')
-    # read list of images
-    with open(imagesetfile, 'r') as f:
-        lines = f.readlines()
-    imagenames = [x.strip() for x in lines]
-    if not os.path.isfile(cachefile):
-        # load annots
-        recs = {}
-        for i, imagename in enumerate(imagenames):
-            recs[imagename] = parse_rec(annopath % (imagename))
-            if i % 100 == 0:
-                print('Reading annotation for {:d}/{:d}'.format(
-                   i + 1, len(imagenames)))
-        # save
-        print('Saving cached annotations to {:s}'.format(cachefile))
-        with open(cachefile, 'wb') as f:
-            pickle.dump(recs, f)
-    else:
-        # load
-        with open(cachefile, 'rb') as f:
-            recs = pickle.load(f)
+    output_dir = get_output_dir('ssd300_vg_50', 'test')
+    gt_file = osp.join(output_dir, 'ground_truth.pth')
+
+    # if not osp.isdir(cachedir):
+    #     os.mkdir(cachedir)
+    # cachefile = osp.join(cachedir, 'annots.pkl')
+    # # read list of images
+    # with open(imagesetfile, 'r') as f:
+    #     lines = f.readlines()
+    # imagenames = [x.strip() for x in lines]
+    # if not osp.isfile(cachefile):
+    #     # load annots
+    #     recs = {}
+    #     for i, imagename in enumerate(imagenames):
+    #         recs[imagename] = parse_rec(annopath % (imagename))
+    #         if i % 100 == 0:
+    #             print('Reading annotation for {:d}/{:d}'.format(
+    #                i + 1, len(imagenames)))
+    #     # save
+    #     print('Saving cached annotations to {:s}'.format(cachefile))
+    #     with open(cachefile, 'wb') as f:
+    #         pickle.dump(recs, f)
+    # else:
+    #     # load
+    #     with open(cachefile, 'rb') as f:
+    #         recs = pickle.load(f)
+    recs = torch.load(gt_file)
+    recs = recs[classname]
 
     # extract gt objects for this class
     class_recs = {}
     npos = 0
-    for imagename in imagenames:
-        R = [obj for obj in recs[imagename] if obj['name'] == classname]
-        bbox = np.array([x['bbox'] for x in R])
-        difficult = np.array([x['difficult'] for x in R]).astype(np.bool)
+    for imagename in recs:
+        R = recs[imagename]
+        bbox = np.array(R)
+        difficult = np.zeros(len(R)).astype(np.bool)
         det = [False] * len(R)
         npos = npos + sum(~difficult)
         class_recs[imagename] = {'bbox': bbox,
@@ -255,7 +266,7 @@ cachedir: Directory for caching the annotations
                                  'det': det}
 
     # read dets
-    detfile = detpath.format(classname)
+    detfile = get_voc_results_file_template('test', classname)
     with open(detfile, 'r') as f:
         lines = f.readlines()
     if any(lines) == 1:
@@ -323,28 +334,40 @@ cachedir: Directory for caching the annotations
     return rec, prec, ap
 
 
-def test_net(save_folder, dataset, top_k, thresh=0.05):
+def test_net(dataset):
     """Test a Fast R-CNN network on an image database."""
     num_images = len(dataset)
     # all detections are collected into:
     #    all_boxes[cls][image] = N x 5 array of detections in
     #    (x1, y1, x2, y2, score)
     all_boxes = {x: {} for x in dataset.obj_idx}
+    cls_gt = {i: {} for i in range(len(dataset.obj_idx))}
 
     # timers
     _t = {'im_detect': Timer(), 'misc': Timer()}
     output_dir = get_output_dir('ssd300_vg_50', 'test')
-    det_file = os.path.join(output_dir, 'detections.pth')
+    det_file = osp.join(output_dir, 'detections.pth')
+    gt_file = osp.join(output_dir, 'ground_truth.pth')
 
-    for i in range(num_images):
-        im, gt, h, w = dataset.pull_item(i)
-
-        x = Variable(im.unsqueeze(0))
+    for i in range(len(dataset)):
+        img, boxes, h, w, img_id = dataset[i]
+        x = Variable(img)
         if args.cuda:
             x = x.cuda()
         _t['im_detect'].tic()
         detections = net(x).data
         detect_time = _t['im_detect'].toc(average=False)
+
+        # boxes = [[x[y] * d for y, d in zip(range(0, 4), (w, h, w, h))]
+        #          for x in boxes]
+        for box in boxes:
+            box[0] *= w
+            box[2] *= w
+            box[1] *= h
+            box[3] *= h
+            if img_id not in cls_gt[box[4]]:
+                cls_gt[box[4]][img_id] = []
+            cls_gt[box[4]][img_id].append(box)
 
         # skip j = 0, because it's the background class
         for j in range(1, detections.size(1)):
@@ -359,15 +382,16 @@ def test_net(save_folder, dataset, top_k, thresh=0.05):
             boxes[:, 1] *= h
             boxes[:, 3] *= h
             scores = dets[:, 0].cpu().numpy()
-            cls_dets = np.hstack((boxes.cpu().numpy(), scores[:, np.newaxis])) \
-                .astype(np.float32, copy=False)
-            all_boxes[j][i] = cls_dets
+            cls_dets = np.hstack((
+                boxes.cpu().numpy(), scores[:, np.newaxis])).astype(
+                    np.float32, copy=False)
+            all_boxes[j - 1][img_id] = cls_dets
 
         print('im_detect: {:d}/{:d} {:.3f}s'.format(i + 1,
                                                     num_images, detect_time))
 
-    with open(det_file, 'wb') as f:
-        pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
+    torch.save(all_boxes, det_file)
+    torch.save(cls_gt, gt_file)
 
     print('Evaluating detections')
     evaluate_detections(all_boxes, output_dir, dataset)
@@ -375,7 +399,7 @@ def test_net(save_folder, dataset, top_k, thresh=0.05):
 
 def evaluate_detections(box_list, output_dir, dataset):
     write_voc_results_file(box_list, dataset)
-    do_python_eval(output_dir)
+    do_python_eval(output_dir, dataset.obj_idx)
 
 
 if __name__ == '__main__':
@@ -394,13 +418,8 @@ if __name__ == '__main__':
                                           ]),
                        target_transform=AnnotationTransform(),
                        train=False)
-    dataloader = DataLoader(dataset, shuffle=True,
-                            collate_fn=detection_collate,
-                            batch_size=args.batch_size)
     if args.cuda:
         net = net.cuda()
         cudnn.benchmark = True
     # evaluation
-    test_net(args.save_folder, net, args.cuda, dataset,
-             BaseTransform(net.size, dataset_mean), args.top_k, 300,
-             thresh=args.confidence_threshold)
+    test_net(dataset)
