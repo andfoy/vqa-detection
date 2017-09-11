@@ -351,7 +351,7 @@ def test_net(dataset):
 
     for i in range(len(dataset)):
         img, boxes, h, w, img_id = dataset[i]
-        x = Variable(img)
+        x = Variable(img.unsqueeze(0))
         if args.cuda:
             x = x.cuda()
         _t['im_detect'].tic()
