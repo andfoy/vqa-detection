@@ -111,7 +111,7 @@ def write_voc_results_file(all_boxes, dataset):
     labelmap = dataset.obj_idx
     for classname in labelmap:
         cls_ind = labelmap[classname]
-        print('Writing {:s} results file'.format(classname))
+        print('Writing {0} results file'.format(str(classname)))
         filename = get_voc_results_file_template('test', cls_ind)
         with open(filename, 'wt') as f:
             dets_cls = all_boxes[cls_ind]
