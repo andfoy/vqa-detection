@@ -121,7 +121,7 @@ def write_voc_results_file(all_boxes, dataset):
                     continue
                 # the VOCdevkit expects 1-based indices
                 for k in range(dets.shape[0]):
-                    f.write('{:s} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
+                    f.write('{0} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
                             format(im_ind, dets[k, -1],
                                    dets[k, 0] + 1, dets[k, 1] + 1,
                                    dets[k, 2] + 1, dets[k, 3] + 1))
@@ -262,6 +262,7 @@ cachedir: Directory for caching the annotations
 
     # read dets
     detfile = get_voc_results_file_template('test', classname)
+    print(detfile)
     with open(detfile, 'r') as f:
         lines = f.readlines()
     if any(lines) == 1:
