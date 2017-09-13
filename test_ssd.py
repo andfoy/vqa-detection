@@ -121,7 +121,7 @@ def write_voc_results_file(all_boxes, dataset):
                     continue
                 # the VOCdevkit expects 1-based indices
                 for k in range(dets.shape[0]):
-                    f.write('{0} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
+                    f.write('{:d} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
                             format(im_ind, dets[k, -1],
                                    dets[k, 0] + 1, dets[k, 1] + 1,
                                    dets[k, 2] + 1, dets[k, 3] + 1))
@@ -387,8 +387,8 @@ def test_net(dataset):
             print('im_detect: {:d}/{:d} {:.3f}s'.format(
                 i + 1, num_images, detect_time))
 
-    torch.save(all_boxes, det_file)
-    torch.save(cls_gt, gt_file)
+        torch.save(all_boxes, det_file)
+        torch.save(cls_gt, gt_file)
 
     print('Evaluating detections')
     evaluate_detections(all_boxes, output_dir, dataset)
