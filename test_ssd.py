@@ -283,6 +283,8 @@ cachedir: Directory for caching the annotations
         tp = np.zeros(nd)
         fp = np.zeros(nd)
         for d in range(nd):
+            if image_ids[d] not in class_recs:
+                continue
             R = class_recs[image_ids[d]]
             bb = BB[d, :].astype(float)
             ovmax = -np.inf
