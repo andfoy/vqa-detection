@@ -360,13 +360,15 @@ def test_net(dataset):
             # boxes = [[x[y] * d for y, d in zip(range(0, 4), (w, h, w, h))]
             #          for x in boxes]
             for box in boxes:
+                cat = box[4]
                 box[0] *= w
                 box[2] *= w
                 box[1] *= h
                 box[3] *= h
-                if img_id not in cls_gt[box[4]]:
-                    cls_gt[box[4]][img_id] = []
-                cls_gt[box[4]][img_id].append(box)
+                box = box[:-1]
+                if img_id not in cls_gt[cat]:
+                    cls_gt[cat][img_id] = []
+                cls_gt[cat][img_id].append(box)
 
             # skip j = 0, because it's the background class
             for j in range(1, detections.size(1)):
@@ -391,13 +393,9 @@ def test_net(dataset):
 
         torch.save(all_boxes, det_file)
         torch.save(cls_gt, gt_file)
+        write_voc_results_file(all_boxes, dataset)
 
     print('Evaluating detections')
-    evaluate_detections(all_boxes, output_dir, dataset)
-
-
-def evaluate_detections(box_list, output_dir, dataset):
-    write_voc_results_file(box_list, dataset)
     do_python_eval(dataset.obj_idx, output_dir=output_dir)
 
 
