@@ -268,7 +268,7 @@ cachedir: Directory for caching the annotations
     if any(lines) == 1:
 
         splitlines = [x.strip().split(' ') for x in lines]
-        image_ids = [x[0] for x in splitlines]
+        image_ids = [int(x[0]) for x in splitlines]
         confidence = np.array([float(x[1]) for x in splitlines])
         BB = np.array([[float(z) for z in x[2:]] for x in splitlines])
 
