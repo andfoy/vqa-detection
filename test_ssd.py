@@ -128,7 +128,6 @@ def write_voc_results_file(all_boxes, dataset):
 
 
 def do_python_eval(labelmap, output_dir='output', use_07=True):
-    cachedir = osp.join('cache', 'annotations_cache')
     aps = []
     # The PASCAL VOC metric changed in 2010
     use_07_metric = use_07
