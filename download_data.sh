@@ -31,6 +31,8 @@ if [ ! -d $VISUAL_GENOME ]; then
     aria2c -x 8 "http://visualgenome.org/static/data/dataset/scene_graphs.json.zip"
     aria2c -x 8 "http://visualgenome.org/static/data/dataset/object_alias.txt"
     aria2c -x 8 "http://visualgenome.org/static/data/dataset/relationship_alias.txt"
+    aria2c -x 8 "http://visualgenome.org/static/data/dataset/question_answers.json.zip"
+    aria2c -x 8 "http://visualgenome.org/static/data/dataset/qa_to_region_mapping.json.zip"
 
     printf "Uncompressing data..."
     unzip "*.zip"
