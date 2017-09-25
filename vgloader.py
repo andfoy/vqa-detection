@@ -106,49 +106,99 @@ class VGLoader(data.Dataset):
 
     def filter_regions(self):
         """Choose top NUM_CLASSES categories that contain NUM_OBJS objects."""
+        print('Loading Questions and Answers...')
+        qas = vg.get_all_qas(self.data_root)
+        qa_id_map = {}
+        for img in qas:
+            for qa in img:
+                qa_id_map[qa.id] = qa
+
+        print('Loading QA - Region map...')
+        qa_map_file = osp.join(self.data_root, 'qa_to_region_mapping.json')
+        with open(qa_map_file, 'r') as f:
+            qa_map = json.load(f)
+
+        print('Loading object aliases...')
+        obj_alias_file = osp.join(self.data_root, 'object_alias.txt')
+        obj_alias = {}
+        with open(obj_alias_file, 'r') as f:
+            lines = f.readlines()
+            lines = [x.strip().split(',') for x in lines]
+            for line in lines:
+                for obj in line:
+                    obj_alias[obj] = line[0]
+
         print('Loading region graph objects...')
         region_graph_file = osp.join(self.data_root, 'region_graphs.json')
         with open(region_graph_file, 'r') as f:
             reg_graph = json.load(f)
 
-        img_id = {x['image_id']: {
-            y['region_id']: frozenset([z['entity_name'].lower()
-                                       for z in y['synsets']] +
-                                      [z['name'].lower()
-                                       for z in y['objects']])
-            for y in x['regions']}
-            for x in reg_graph}
+        reg_id_map = {}
+        for img_reg in reg_graph:
+            for reg in img_reg['regions']:
+                reg_id_map[reg['region_id']] = reg
+
+        print('Counting object instances referred by question')
+        obj_count = {}
+        qa_obj = {}
+        for qa in qa_map:
+            reg_id = int(qa_map[str(qa)])
+            if reg_id in reg_id_map:
+                reg = reg_id_map[reg_id]
+                reg_obj = frozenset([z['entity_name'].lower()
+                                     for z in reg['synsets']] +
+                                    [z['name'].lower()
+                                     for z in reg['objects']])
+                reg_obj = frozenset([obj_alias[obj]
+                                     if obj in obj_alias else obj
+                                     for obj in reg_obj])
+                for obj in reg_obj:
+                    obj_c = obj_count.get(obj, 0)
+                    obj_count[obj] = obj_c + 1
+                qa_obj[qa] = reg_obj
+
+        # img_id = {x['image_id']: {
+        #     y['region_id']: frozenset([z['entity_name'].lower()
+        #                                for z in y['synsets']] +
+        #                               [z['name'].lower()
+        #                                for z in y['objects']])
+        #     for y in x['regions']}
+        #     for x in reg_graph}
 
         print('Processing region graph objects: Extract top {0} categories '
               'with {1} objects'.format(
                   self.NUM_CLASSES, self.NUM_OBJS))
 
-        obj_count = {}
-        bar = progressbar.ProgressBar()
-        for img in bar(img_id):
-            for region in img_id[img]:
-                obj = img_id[img][region]
-                if len(obj) == self.NUM_OBJS:
-                    if obj not in obj_count:
-                        obj_count[obj] = 0
-                    obj_count[obj] += 1
+        # obj_count = {}
+        # bar = progressbar.ProgressBar()
+        # for img in bar(img_id):
+        #     for region in img_id[img]:
+        #         obj = img_id[img][region]
+        #         if len(obj) == self.NUM_OBJS:
+        #             if obj not in obj_count:
+        #                 obj_count[obj] = 0
+        #             obj_count[obj] += 1
 
         objs = sorted(obj_count, key=lambda k: obj_count[k],
                       reverse=True)[:self.NUM_CLASSES]
 
+        obj_set = frozenset(objs)
         obj_idx = dict(zip(objs, range(len(objs))))
 
-        print('Filtering regions...')
+        print('Filtering VQAs...')
+        qa_regions = {x: qa_id_map[int(x)] for x in qa_obj
+                      if int(x) in qa_id_map and
+                      len(qa_obj[x].intersection(obj_set)) > 3}
 
-        img_regions = {}
-        bar = progressbar.ProgressBar()
-        for img in bar(img_id):
-            regions = {}
-            for region in img_id[img]:
-                if img_id[img][region] in obj_idx:
-                    regions[region] = img_id[img][region]
-            if len(regions) > 0:
-                img_regions[img] = regions
+        # img_regions = {}
+        # bar = progressbar.ProgressBar()
+        # for img in bar(img_id):
+        #     regions = {}
+        #     for region in img_id[img]:
+        #         if img_id[img][region] in obj_idx:
+        #             regions[region] = img_id[img][region]
+        #     if len(regions) > 0:
+        #         img_regions[img] = regions
 
         return obj_idx, img_regions
 
